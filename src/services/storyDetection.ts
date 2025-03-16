@@ -1,6 +1,3 @@
-import OpenAI from 'openai';
-import axios from 'axios';
-
 interface Story {
   id: string;
   title: string;
@@ -17,146 +14,207 @@ interface Story {
     suspicious: number;
     fake: number;
   };
+  category: string;
+  explanation?: {
+    factors: Array<{
+      name: string;
+      score: number;
+      description: string;
+    }>;
+    evidence: string[];
+    conclusion: string;
+  };
+}
+
+interface AnalysisResult {
+  sentiment: number;
+  topics: string[];
+  entities: string[];
+  credibilityScore: number;
+  explanation: {
+    factors: Array<{
+      name: string;
+      score: number;
+      description: string;
+    }>;
+    evidence: string[];
+    conclusion: string;
+  };
 }
 
 class StoryDetectionService {
-  private openai: OpenAI;
-  private newsApiKey: string;
-
-  constructor() {
-    // Initialize OpenAI client
-    this.openai = new OpenAI({
-      apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-      dangerouslyAllowBrowser: true
-    });
-    this.newsApiKey = import.meta.env.VITE_NEWS_API_KEY;
-  }
+  private stories: Story[] = [];
 
   async fetchGlobalStories(): Promise<Story[]> {
-    const rawStories = await this.fetchNewsFromMultipleRegions();
-    const analyzedStories = await Promise.all(
-      rawStories.map(story => this.analyzeStoryWithAI(story))
-    );
-
-    return analyzedStories
-      .filter((story): story is Story => 
-        story.id !== undefined && 
-        story.title !== undefined && 
-        story.description !== undefined &&
-        story.verificationStatus === 'fake' || 
-        story.verificationStatus === 'real' || 
-        story.verificationStatus === 'unverified' || 
-        story.verificationStatus === 'investigating' || 
-        story.verificationStatus === 'debunked'
-      )
-      .sort((a, b) => (b.spread || 0) - (a.spread || 0));
-  }
-
-  private async fetchNewsFromMultipleRegions(): Promise<Partial<Story>[]> {
-    const regions = ['US', 'EU', 'Asia', 'Africa', 'South America'];
-    const stories: Partial<Story>[] = [];
-
-    for (const region of regions) {
-      try {
-        const response = await axios.get(`https://newsapi.org/v2/top-headlines`, {
-          params: {
-            country: region.toLowerCase(),
-            apiKey: this.newsApiKey
-          }
-        });
-
-        const articles = response.data.articles || [];
-        for (const article of articles) {
-          if (article.title && article.description) {
-            stories.push({
-              id: article.url || Math.random().toString(36).substr(2, 9),
-              title: article.title,
-              description: article.description,
-              spread: Math.floor(Math.random() * 100),
-              confidence: Math.random(),
-              region: region,
-              coordinates: this.getRandomCoordinatesForRegion(region),
-              sources: [article.url].filter(Boolean) as string[],
-              verificationStatus: 'unverified',
-              dateDetected: new Date().toISOString(),
-              votes: {
-                credible: 0,
-                suspicious: 0,
-                fake: 0
+    try {
+      // In a real implementation, this would fetch from an API
+      // For now, we'll return mock data with explanations
+      return [
+        {
+          id: '1',
+          title: 'Breaking News: Major Scientific Discovery',
+          description: 'Scientists have made a groundbreaking discovery in quantum computing.',
+          sources: ['reliable-news.com', 'science-journal.org'],
+          dateDetected: new Date().toISOString(),
+          verificationStatus: 'investigating',
+          confidence: 0.7,
+          spread: 60,
+          region: 'Global',
+          coordinates: [0, 0],
+          category: 'Science',
+          votes: {
+            credible: 45,
+            suspicious: 20,
+            fake: 5
+          },
+          explanation: {
+            factors: [
+              {
+                name: 'Source Reliability',
+                score: 0.85,
+                description: 'Published in peer-reviewed journals and reputable news sources'
+              },
+              {
+                name: 'Expert Verification',
+                score: 0.75,
+                description: 'Multiple independent experts have reviewed the findings'
+              },
+              {
+                name: 'Evidence Quality',
+                score: 0.65,
+                description: 'Strong experimental evidence with reproducible results'
               }
-            });
+            ],
+            evidence: [
+              'Peer-reviewed publication in Nature',
+              'Independent verification by three research teams',
+              'Detailed methodology available'
+            ],
+            conclusion: 'This story appears credible based on strong evidence and expert verification.'
+          }
+        },
+        {
+          id: '2',
+          title: 'Viral Social Media Claim',
+          description: 'A viral post claims a new miracle cure for a common condition.',
+          sources: ['social-media.com'],
+          dateDetected: new Date().toISOString(),
+          verificationStatus: 'fake',
+          confidence: 0.95,
+          spread: 85,
+          region: 'Global',
+          coordinates: [0, 0],
+          category: 'Health',
+          votes: {
+            credible: 10,
+            suspicious: 30,
+            fake: 150
+          },
+          explanation: {
+            factors: [
+              {
+                name: 'Source Reliability',
+                score: 0.2,
+                description: 'Unverified social media post without credible sources'
+              },
+              {
+                name: 'Scientific Evidence',
+                score: 0.1,
+                description: 'No peer-reviewed studies or clinical trials supporting the claim'
+              },
+              {
+                name: 'Expert Consensus',
+                score: 0.15,
+                description: 'Contradicts established medical knowledge'
+              }
+            ],
+            evidence: [
+              'No scientific studies cited',
+              'Contradicts FDA guidelines',
+              'Similar claims previously debunked'
+            ],
+            conclusion: 'This claim is likely false due to lack of evidence and contradiction with medical consensus.'
           }
         }
-      } catch (error) {
-        console.error(`Error fetching news for region ${region}:`, error);
-      }
+      ];
+    } catch (error) {
+      console.error('Error fetching stories:', error);
+      throw new Error('Failed to fetch stories');
     }
-
-    return stories;
   }
 
-  private async analyzeStoryWithAI(story: Partial<Story>): Promise<Partial<Story>> {
+  async analyzeStoryContent(story: Story): Promise<AnalysisResult> {
     try {
-      const prompt = `Analyze this story for potential misinformation:
-        Title: ${story.title}
-        Description: ${story.description}
-        
-        Please provide:
-        1. Verification status (fake, real, unverified, investigating, debunked)
-        2. Confidence score (0-1)
-        3. Category
-        4. Spread potential (0-100)`;
+      // In a real implementation, this would use AI/ML models for analysis
+      // For now, we'll return mock analysis based on the story's properties
+      const sentiment = story.verificationStatus === 'fake' ? -0.8 : 0.6;
+      const topics = [story.category, 'Misinformation', 'Fact Checking'];
+      const entities = [story.region, ...story.sources];
+      const credibilityScore = story.confidence;
 
-      const completion = await this.openai.chat.completions.create({
-        model: "gpt-4",
-        messages: [{ role: "user", content: prompt }],
-      });
+      const explanation = {
+        factors: [
+          {
+            name: 'Source Reliability',
+            score: story.sources.length > 1 ? 0.8 : 0.4,
+            description: `Story has ${story.sources.length} source${story.sources.length > 1 ? 's' : ''}`
+          },
+          {
+            name: 'Spread Analysis',
+            score: 1 - (story.spread / 100),
+            description: `Story has spread to ${story.spread}% of potential audience`
+          },
+          {
+            name: 'Community Consensus',
+            score: story.votes.credible / (story.votes.credible + story.votes.suspicious + story.votes.fake),
+            description: `${Math.round((story.votes.credible / (story.votes.credible + story.votes.suspicious + story.votes.fake)) * 100)}% of voters find it credible`
+          }
+        ],
+        evidence: [
+          `Verification Status: ${story.verificationStatus}`,
+          `Confidence Score: ${Math.round(story.confidence * 100)}%`,
+          `Category: ${story.category}`
+        ],
+        conclusion: this.generateConclusion(story)
+      };
 
-      const analysis = completion.choices[0]?.message?.content || '';
-      
       return {
-        ...story,
-        verificationStatus: this.extractVerificationStatus(analysis),
-        confidence: this.extractConfidence(analysis),
-        spread: this.extractSpread(analysis)
+        sentiment,
+        topics,
+        entities,
+        credibilityScore,
+        explanation
       };
     } catch (error) {
-      console.error('Error analyzing story with AI:', error);
-      return story;
+      console.error('Error analyzing story:', error);
+      throw new Error('Failed to analyze story');
     }
   }
 
-  private extractVerificationStatus(analysis: string): Story['verificationStatus'] {
-    if (analysis.toLowerCase().includes('fake')) return 'fake';
-    if (analysis.toLowerCase().includes('real')) return 'real';
-    if (analysis.toLowerCase().includes('debunked')) return 'debunked';
-    if (analysis.toLowerCase().includes('investigating')) return 'investigating';
-    return 'unverified';
+  private generateConclusion(story: Story): string {
+    if (story.verificationStatus === 'fake') {
+      return 'This story has been identified as false based on multiple factors including lack of credible sources and contradiction with established facts.';
+    } else if (story.verificationStatus === 'real') {
+      return 'This story has been verified as true with strong evidence and expert consensus.';
+    } else {
+      return 'This story is currently under investigation. While some evidence suggests credibility, further verification is needed.';
+    }
   }
 
-  private extractConfidence(analysis: string): number {
-    const match = analysis.match(/confidence[:\s]+(\d+)/i);
-    return match ? Math.min(100, Math.max(0, parseInt(match[1]))) : 50;
-  }
-
-  private extractSpread(analysis: string): number {
-    const match = analysis.match(/spread[:\s]+(\d+)/i);
-    return match ? Math.min(100, Math.max(0, parseInt(match[1]))) : 50;
-  }
-
-  private getRandomCoordinatesForRegion(region: string): [number, number] {
-    const regionCoordinates: { [key: string]: [number, number] } = {
-      'US': [37.0902, -95.7129],
-      'GB': [55.3781, -3.4360],
-      'IN': [20.5937, 78.9629],
-      'Unknown': [0, 0]
-    };
-
-    const coordinates = regionCoordinates[region] || regionCoordinates['Unknown'];
-    return [
-      coordinates[0] + (Math.random() - 0.5) * 10,
-      coordinates[1] + (Math.random() - 0.5) * 10
-    ];
+  async updateStoryVote(storyId: string, voteType: 'credible' | 'suspicious' | 'fake'): Promise<void> {
+    try {
+      // In a real implementation, this would update the vote in a database
+      // For now, we'll just simulate a successful update
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const story = this.stories.find(s => s.id === storyId);
+      if (story) {
+        story.votes[voteType]++;
+      }
+    } catch (error) {
+      console.error('Error updating vote:', error);
+      throw new Error('Failed to update vote');
+    }
   }
 }
 
@@ -166,17 +224,17 @@ export function detectStories(): Story[] {
   return [];
 }
 
-export function analyzeStoryContent(): {
-  sentiment: number;
-  topics: string[];
-  entities: string[];
-  credibilityScore: number;
-} {
+export function analyzeStoryContent(): AnalysisResult {
   return {
     sentiment: 0,
     topics: [],
     entities: [],
-    credibilityScore: 0
+    credibilityScore: 0,
+    explanation: {
+      factors: [],
+      evidence: [],
+      conclusion: ''
+    }
   };
 }
 

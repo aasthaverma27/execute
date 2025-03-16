@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Avatar } from './ui/Avatar';
 import { Tooltip } from './ui/Tooltip';
+import { storyDetectionService } from '../services/storyDetection';
 
 interface FactCheckingProps {
   onClose: () => void;
@@ -9,18 +10,45 @@ interface FactCheckingProps {
 interface Story {
   id: string;
   title: string;
-  content: string;
-  source: string;
-  datePosted: string;
+  description: string;
+  spread: number;
+  confidence: number;
+  region: string;
+  coordinates: [number, number];
+  sources: string[];
+  verificationStatus: 'fake' | 'real' | 'unverified' | 'investigating' | 'debunked';
+  dateDetected: string;
   votes: {
     credible: number;
     suspicious: number;
     fake: number;
   };
-  status: 'pending' | 'verified' | 'debunked';
-  sources: string[];
   category: string;
-  activeCheckers: number;
+  explanation?: {
+    factors: Array<{
+      name: string;
+      score: number;
+      description: string;
+    }>;
+    evidence: string[];
+    conclusion: string;
+  };
+}
+
+interface AnalysisResult {
+  sentiment: number;
+  topics: string[];
+  entities: string[];
+  credibilityScore: number;
+  explanation: {
+    factors: Array<{
+      name: string;
+      score: number;
+      description: string;
+    }>;
+    evidence: string[];
+    conclusion: string;
+  };
 }
 
 const activeUsers = [
@@ -34,31 +62,104 @@ const activeUsers = [
 export function CollaborativeFactChecking({ onClose }: FactCheckingProps) {
   const [stories, setStories] = useState<Story[]>([]);
   const [userVotes, setUserVotes] = useState<Record<string, keyof Story['votes']>>({});
-  const [totalActiveUsers] = useState(234); // Simulated total active users
-  const [filter, setFilter] = useState<'all' | 'pending' | 'verified' | 'debunked'>('all');
+  const [totalActiveUsers] = useState(234);
+  const [filter, setFilter] = useState<'all' | 'investigating' | 'real' | 'fake' | 'debunked'>('all');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedStory, setSelectedStory] = useState<Story | null>(null);
+  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
 
-  const handleVote = (storyId: string, voteType: keyof Story['votes']) => {
-    if (userVotes[storyId]) return; // User has already voted
+  useEffect(() => {
+    fetchStories();
+  }, []);
 
-    setStories(prevStories =>
-      prevStories.map(story => {
-        if (story.id === storyId) {
-          return {
-            ...story,
-            votes: {
-              ...story.votes,
-              [voteType]: story.votes[voteType] + 1
-            }
-          };
-        }
-        return story;
-      })
-    );
+  useEffect(() => {
+    if (selectedStory) {
+      analyzeStory(selectedStory);
+    }
+  }, [selectedStory]);
 
-    setUserVotes(prev => ({
-      ...prev,
-      [storyId]: voteType
-    }));
+  const fetchStories = async () => {
+    try {
+      setLoading(true);
+      const fetchedStories = await storyDetectionService.fetchGlobalStories();
+      setStories(fetchedStories);
+      setError(null);
+    } catch (err) {
+      setError('Failed to fetch stories. Please try again later.');
+      console.error('Error fetching stories:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const analyzeStory = async (story: Story) => {
+    try {
+      const result = await storyDetectionService.analyzeStoryContent(story);
+      setAnalysis(result);
+    } catch (err) {
+      console.error('Error analyzing story:', err);
+    }
+  };
+
+  const handleStoryClick = (story: Story) => {
+    setSelectedStory(story);
+  };
+
+  const handleVote = async (storyId: string, voteType: keyof Story['votes']) => {
+    if (userVotes[storyId]) return;
+
+    try {
+      await storyDetectionService.updateStoryVote(storyId, voteType);
+      
+      setStories(prevStories =>
+        prevStories.map(story => {
+          if (story.id === storyId) {
+            return {
+              ...story,
+              votes: {
+                ...story.votes,
+                [voteType]: story.votes[voteType] + 1
+              }
+            };
+          }
+          return story;
+        })
+      );
+
+      setUserVotes(prev => ({
+        ...prev,
+        [storyId]: voteType
+      }));
+
+      // Re-analyze the story after voting
+      const updatedStory = stories.find(s => s.id === storyId);
+      if (updatedStory) {
+        analyzeStory(updatedStory);
+      }
+    } catch (error) {
+      console.error('Error updating vote:', error);
+      // Revert the vote if the update fails
+      setStories(prevStories =>
+        prevStories.map(story => {
+          if (story.id === storyId) {
+            return {
+              ...story,
+              votes: {
+                ...story.votes,
+                [voteType]: story.votes[voteType] - 1
+              }
+            };
+          }
+          return story;
+        })
+      );
+      setUserVotes(prev => {
+        const newVotes = { ...prev };
+        delete newVotes[storyId];
+        return newVotes;
+      });
+    }
   };
 
   const getVotePercentage = (votes: Story['votes']) => {
@@ -71,8 +172,35 @@ export function CollaborativeFactChecking({ onClose }: FactCheckingProps) {
   };
 
   const filteredStories = stories.filter(story => 
-    filter === 'all' ? true : story.status === filter
+    filter === 'all' ? true : story.verificationStatus === filter
   );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading stories...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <button
+            onClick={fetchStories}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -140,19 +268,19 @@ export function CollaborativeFactChecking({ onClose }: FactCheckingProps) {
                       All
                     </button>
                     <button
-                      onClick={() => setFilter('pending')}
+                      onClick={() => setFilter('investigating')}
                       className={`px-3 py-1 rounded-full text-sm ${
-                        filter === 'pending'
+                        filter === 'investigating'
                           ? 'bg-yellow-100 text-yellow-800'
                           : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
                     >
-                      Pending
+                      Investigating
                     </button>
                     <button
-                      onClick={() => setFilter('verified')}
+                      onClick={() => setFilter('real')}
                       className={`px-3 py-1 rounded-full text-sm ${
-                        filter === 'verified'
+                        filter === 'real'
                           ? 'bg-green-100 text-green-800'
                           : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
@@ -160,10 +288,20 @@ export function CollaborativeFactChecking({ onClose }: FactCheckingProps) {
                       Verified
                     </button>
                     <button
+                      onClick={() => setFilter('fake')}
+                      className={`px-3 py-1 rounded-full text-sm ${
+                        filter === 'fake'
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      Fake
+                    </button>
+                    <button
                       onClick={() => setFilter('debunked')}
                       className={`px-3 py-1 rounded-full text-sm ${
                         filter === 'debunked'
-                          ? 'bg-red-100 text-red-800'
+                          ? 'bg-purple-100 text-purple-800'
                           : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
                     >
@@ -176,55 +314,84 @@ export function CollaborativeFactChecking({ onClose }: FactCheckingProps) {
                   {filteredStories.map(story => (
                     <div
                       key={story.id}
-                      className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+                      className={`border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer ${
+                        selectedStory?.id === story.id ? 'ring-2 ring-blue-500' : ''
+                      }`}
+                      onClick={() => handleStoryClick(story)}
                     >
                       <div className="flex justify-between items-start mb-2">
                         <h3 className="text-lg font-medium">{story.title}</h3>
                         <span className={`px-2 py-1 rounded-full text-xs ${
-                          story.status === 'pending'
+                          story.verificationStatus === 'investigating'
                             ? 'bg-yellow-100 text-yellow-800'
-                            : story.status === 'verified'
+                            : story.verificationStatus === 'real'
                             ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
+                            : story.verificationStatus === 'fake'
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-purple-100 text-purple-800'
                         }`}>
-                          {story.status.charAt(0).toUpperCase() + story.status.slice(1)}
+                          {story.verificationStatus.charAt(0).toUpperCase() + story.verificationStatus.slice(1)}
                         </span>
                       </div>
-                      <p className="text-gray-600 mb-4">{story.content}</p>
+                      <p className="text-gray-600 mb-4">{story.description}</p>
                       
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center space-x-4">
                           <span className="text-sm text-gray-500">
-                            Source: {story.source}
+                            Source: {story.sources.join(', ')}
                           </span>
                           <span className="text-sm text-gray-500">
-                            Posted: {story.datePosted}
+                            Date Detected: {story.dateDetected}
                           </span>
                         </div>
                         <div className="flex items-center">
                           <span className="text-sm text-gray-500 mr-2">
-                            {story.activeCheckers} active checkers
+                            Spread: {story.spread.toFixed(2)}
                           </span>
-                          <div className="flex -space-x-2">
-                            {[...Array(Math.min(3, story.activeCheckers))].map((_, i) => (
-                              <div key={i} className="relative">
-                                <Avatar
-                                  src={`https://i.pravatar.cc/150?img=${i + 10}`}
-                                  size="sm"
-                                  className="border-2 border-white"
-                                />
-                              </div>
-                            ))}
-                            {story.activeCheckers > 3 && (
-                              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 border-2 border-white">
-                                <span className="text-xs text-gray-600">
-                                  +{story.activeCheckers - 3}
-                                </span>
-                              </div>
-                            )}
-                          </div>
+                          <span className="text-sm text-gray-500">
+                            Confidence: {story.confidence.toFixed(2)}
+                          </span>
                         </div>
                       </div>
+
+                      {selectedStory?.id === story.id && analysis && (
+                        <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                          <h4 className="font-semibold mb-2">Analysis & Explanation</h4>
+                          <div className="space-y-4">
+                            <div>
+                              <h5 className="text-sm font-medium text-gray-700 mb-2">Credibility Factors</h5>
+                              <div className="space-y-2">
+                                {analysis.explanation.factors.map((factor, index) => (
+                                  <div key={index} className="flex items-center justify-between">
+                                    <div>
+                                      <span className="text-sm font-medium">{factor.name}</span>
+                                      <p className="text-xs text-gray-600">{factor.description}</p>
+                                    </div>
+                                    <div className="w-24 bg-gray-200 rounded-full h-2">
+                                      <div
+                                        className="bg-blue-600 h-2 rounded-full"
+                                        style={{ width: `${factor.score * 100}%` }}
+                                      ></div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            <div>
+                              <h5 className="text-sm font-medium text-gray-700 mb-2">Evidence</h5>
+                              <ul className="list-disc list-inside text-sm text-gray-600">
+                                {analysis.explanation.evidence.map((item, index) => (
+                                  <li key={index}>{item}</li>
+                                ))}
+                              </ul>
+                            </div>
+                            <div>
+                              <h5 className="text-sm font-medium text-gray-700 mb-2">Conclusion</h5>
+                              <p className="text-sm text-gray-600">{analysis.explanation.conclusion}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
                       <div className="space-y-2">
                         <div className="flex space-x-2">
@@ -240,7 +407,10 @@ export function CollaborativeFactChecking({ onClose }: FactCheckingProps) {
                         
                         <div className="flex items-center space-x-4">
                           <button
-                            onClick={() => handleVote(story.id, 'credible')}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleVote(story.id, 'credible');
+                            }}
                             disabled={!!userVotes[story.id]}
                             className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium ${
                               userVotes[story.id] === 'credible'
@@ -251,7 +421,10 @@ export function CollaborativeFactChecking({ onClose }: FactCheckingProps) {
                             Credible ({getVotePercentage(story.votes).credible}%)
                           </button>
                           <button
-                            onClick={() => handleVote(story.id, 'suspicious')}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleVote(story.id, 'suspicious');
+                            }}
                             disabled={!!userVotes[story.id]}
                             className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium ${
                               userVotes[story.id] === 'suspicious'
@@ -262,7 +435,10 @@ export function CollaborativeFactChecking({ onClose }: FactCheckingProps) {
                             Suspicious ({getVotePercentage(story.votes).suspicious}%)
                           </button>
                           <button
-                            onClick={() => handleVote(story.id, 'fake')}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleVote(story.id, 'fake');
+                            }}
                             disabled={!!userVotes[story.id]}
                             className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium ${
                               userVotes[story.id] === 'fake'
