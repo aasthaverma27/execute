@@ -47,14 +47,12 @@ class StoryDetectionService {
 
   async fetchGlobalStories(): Promise<Story[]> {
     try {
-      // In a real implementation, this would fetch from an API
-      // For now, we'll return mock data with explanations
       return [
         {
           id: '1',
           title: 'Breaking News: Major Scientific Discovery',
-          description: 'Scientists have made a groundbreaking discovery in quantum computing.',
-          sources: ['reliable-news.com', 'science-journal.org'],
+          description: 'Scientists have made a groundbreaking discovery in quantum computing that could revolutionize data encryption.',
+          sources: ['reliable-news.com', 'science-journal.org', 'quantum-research.edu'],
           dateDetected: new Date().toISOString(),
           verificationStatus: 'investigating',
           confidence: 0.7,
@@ -95,45 +93,217 @@ class StoryDetectionService {
         },
         {
           id: '2',
-          title: 'Viral Social Media Claim',
-          description: 'A viral post claims a new miracle cure for a common condition.',
-          sources: ['social-media.com'],
+          title: 'Environmental Crisis Alert',
+          description: 'New satellite data reveals unprecedented changes in Arctic ice coverage.',
+          sources: ['climate-science.org', 'environmental-watch.com'],
+          dateDetected: new Date().toISOString(),
+          verificationStatus: 'real',
+          confidence: 0.95,
+          spread: 75,
+          region: 'Arctic',
+          coordinates: [82, -40],
+          category: 'Environment',
+          votes: {
+            credible: 120,
+            suspicious: 15,
+            fake: 5
+          },
+          explanation: {
+            factors: [
+              {
+                name: 'Data Reliability',
+                score: 0.95,
+                description: 'Verified satellite imagery from multiple sources'
+              },
+              {
+                name: 'Expert Analysis',
+                score: 0.90,
+                description: 'Confirmed by leading climate scientists'
+              },
+              {
+                name: 'Historical Consistency',
+                score: 0.85,
+                description: 'Aligns with long-term climate trends'
+              }
+            ],
+            evidence: [
+              'NASA satellite data',
+              'Peer-reviewed climate studies',
+              'Ground station measurements'
+            ],
+            conclusion: 'Multiple lines of evidence strongly support this environmental observation.'
+          }
+        },
+        {
+          id: '3',
+          title: 'Viral Health Claim',
+          description: 'Social media posts claim common household item cures serious illness.',
+          sources: ['social-media.com', 'viral-news.net'],
           dateDetected: new Date().toISOString(),
           verificationStatus: 'fake',
-          confidence: 0.95,
+          confidence: 0.92,
           spread: 85,
           region: 'Global',
           coordinates: [0, 0],
           category: 'Health',
           votes: {
             credible: 10,
-            suspicious: 30,
-            fake: 150
+            suspicious: 150,
+            fake: 300
           },
           explanation: {
             factors: [
               {
-                name: 'Source Reliability',
-                score: 0.2,
-                description: 'Unverified social media post without credible sources'
-              },
-              {
-                name: 'Scientific Evidence',
-                score: 0.1,
-                description: 'No peer-reviewed studies or clinical trials supporting the claim'
-              },
-              {
-                name: 'Expert Consensus',
+                name: 'Source Credibility',
                 score: 0.15,
-                description: 'Contradicts established medical knowledge'
+                description: 'Unverified social media claims'
+              },
+              {
+                name: 'Medical Evidence',
+                score: 0.10,
+                description: 'No clinical trials or medical studies'
+              },
+              {
+                name: 'Expert Opinion',
+                score: 0.05,
+                description: 'Rejected by medical professionals'
               }
             ],
             evidence: [
-              'No scientific studies cited',
-              'Contradicts FDA guidelines',
-              'Similar claims previously debunked'
+              'No scientific backing',
+              'FDA warnings issued',
+              'Similar hoaxes debunked previously'
             ],
-            conclusion: 'This claim is likely false due to lack of evidence and contradiction with medical consensus.'
+            conclusion: 'This claim is demonstrably false and potentially dangerous.'
+          }
+        },
+        {
+          id: '4',
+          title: 'Tech Innovation Breakthrough',
+          description: 'Startup claims revolutionary battery technology with infinite charge cycles.',
+          sources: ['tech-daily.com', 'innovation-news.org'],
+          dateDetected: new Date().toISOString(),
+          verificationStatus: 'investigating',
+          confidence: 0.60,
+          spread: 45,
+          region: 'Asia',
+          coordinates: [35, 139],
+          category: 'Technology',
+          votes: {
+            credible: 50,
+            suspicious: 40,
+            fake: 20
+          },
+          explanation: {
+            factors: [
+              {
+                name: 'Technical Feasibility',
+                score: 0.65,
+                description: 'Theoretically possible but unproven'
+              },
+              {
+                name: 'Company Credibility',
+                score: 0.50,
+                description: 'New startup with limited track record'
+              },
+              {
+                name: 'Patent Verification',
+                score: 0.70,
+                description: 'Patent applications filed and pending'
+              }
+            ],
+            evidence: [
+              'Preliminary lab results',
+              'Patent applications',
+              'Industry expert interviews'
+            ],
+            conclusion: 'Further verification and independent testing required.'
+          }
+        },
+        {
+          id: '5',
+          title: 'Political Controversy',
+          description: 'Leaked documents reveal major policy changes affecting international relations.',
+          sources: ['political-watch.org', 'global-affairs.net', 'diplomatic-times.com'],
+          dateDetected: new Date().toISOString(),
+          verificationStatus: 'debunked',
+          confidence: 0.88,
+          spread: 92,
+          region: 'Europe',
+          coordinates: [48, 2],
+          category: 'Politics',
+          votes: {
+            credible: 30,
+            suspicious: 200,
+            fake: 180
+          },
+          explanation: {
+            factors: [
+              {
+                name: 'Document Authenticity',
+                score: 0.20,
+                description: 'Documents proven to be altered'
+              },
+              {
+                name: 'Official Statements',
+                score: 0.15,
+                description: 'Denied by multiple government sources'
+              },
+              {
+                name: 'Timeline Analysis',
+                score: 0.25,
+                description: 'Inconsistencies in chronological order'
+              }
+            ],
+            evidence: [
+              'Forensic document analysis',
+              'Official government statements',
+              'Timeline inconsistencies'
+            ],
+            conclusion: 'Story based on manipulated documents and has been officially debunked.'
+          }
+        },
+        {
+          id: '6',
+          title: 'Economic Forecast Alert',
+          description: 'Analysis predicts significant market shifts based on emerging trends.',
+          sources: ['financial-times.com', 'market-analysis.org', 'economic-research.edu'],
+          dateDetected: new Date().toISOString(),
+          verificationStatus: 'real',
+          confidence: 0.85,
+          spread: 55,
+          region: 'Global',
+          coordinates: [40, -74],
+          category: 'Economics',
+          votes: {
+            credible: 180,
+            suspicious: 20,
+            fake: 10
+          },
+          explanation: {
+            factors: [
+              {
+                name: 'Data Analysis',
+                score: 0.90,
+                description: 'Based on comprehensive market data'
+              },
+              {
+                name: 'Expert Consensus',
+                score: 0.85,
+                description: 'Supported by leading economists'
+              },
+              {
+                name: 'Methodology',
+                score: 0.95,
+                description: 'Uses established forecasting models'
+              }
+            ],
+            evidence: [
+              'Historical market data',
+              'Economic indicators',
+              'Expert analysis reports'
+            ],
+            conclusion: 'Well-supported economic analysis based on reliable data and expert consensus.'
           }
         }
       ];

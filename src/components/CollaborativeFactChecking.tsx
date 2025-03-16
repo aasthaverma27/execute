@@ -203,16 +203,18 @@ export function CollaborativeFactChecking({ onClose }: FactCheckingProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="fixed top-0 left-0 right-0 bg-white shadow-md z-50 p-4">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Collaborative Fact-Checking</h1>
-            <p className="text-sm text-gray-500">
+            <div className="flex items-center space-x-2">
               <span className="inline-block animate-pulse mr-2">🟢</span>
-              {totalActiveUsers} fact checkers online
-            </p>
+              <span className="text-sm text-gray-500">{totalActiveUsers} fact checkers online</span>
+              <span className="text-sm text-gray-400">•</span>
+              <span className="text-sm text-gray-500">{stories.length} stories being tracked</span>
+            </div>
           </div>
           <button
             onClick={onClose}
@@ -224,235 +226,305 @@ export function CollaborativeFactChecking({ onClose }: FactCheckingProps) {
       </div>
 
       {/* Main Content */}
-      <div className="pt-20 pb-8">
+      <div className="pt-24 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left Sidebar - Active Users */}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            {/* Left Sidebar - Active Users & Stats */}
             <div className="lg:col-span-1">
-              <div className="bg-white rounded-lg shadow-lg p-6">
-                <h2 className="text-lg font-semibold mb-4">Active Fact Checkers</h2>
-                <div className="space-y-4">
-                  <div className="flex flex-wrap gap-2">
-                    {activeUsers.map(user => (
-                      <Tooltip key={user.id} content={user.name}>
-                        <div className="relative">
-                          <Avatar src={user.avatar} alt={user.name} size="sm" />
-                          <span className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
-                            user.status === 'online' ? 'bg-green-500' : 'bg-yellow-500'
-                          }`}></span>
-                        </div>
-                      </Tooltip>
-                    ))}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    +{totalActiveUsers - activeUsers.length} more fact checkers
+              <div className="space-y-6">
+                <div className="bg-white rounded-xl shadow-sm p-6">
+                  <h2 className="text-lg font-semibold mb-4">Active Fact Checkers</h2>
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap gap-2">
+                      {activeUsers.map(user => (
+                        <Tooltip key={user.id} content={user.name}>
+                          <div className="relative">
+                            <Avatar src={user.avatar} alt={user.name} size="sm" />
+                            <span className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
+                              user.status === 'online' ? 'bg-green-500' : 'bg-yellow-500'
+                            }`}></span>
+                          </div>
+                        </Tooltip>
+                      ))}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      +{totalActiveUsers - activeUsers.length} more fact checkers
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Main Content - Stories */}
-            <div className="lg:col-span-2">
-              <div className="bg-white rounded-lg shadow-lg p-6">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-lg font-semibold">Stories to Verify</h2>
-                  <div className="flex space-x-2">
+                <div className="bg-white rounded-xl shadow-sm p-6">
+                  <h2 className="text-lg font-semibold mb-4">Categories</h2>
+                  <div className="space-y-2">
+                    {Array.from(new Set(stories.map(s => s.category))).map(category => (
+                      <div key={category} className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">{category}</span>
+                        <span className="text-sm font-medium text-gray-900">
+                          {stories.filter(s => s.category === category).length}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-xl shadow-sm p-6">
+                  <h2 className="text-lg font-semibold mb-4">Verification Status</h2>
+                  <div className="space-y-2">
                     <button
                       onClick={() => setFilter('all')}
-                      className={`px-3 py-1 rounded-full text-sm ${
+                      className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                         filter === 'all'
                           ? 'bg-blue-100 text-blue-800'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          : 'hover:bg-gray-100 text-gray-600'
                       }`}
                     >
-                      All
+                      All Stories
                     </button>
                     <button
                       onClick={() => setFilter('investigating')}
-                      className={`px-3 py-1 rounded-full text-sm ${
+                      className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                         filter === 'investigating'
                           ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          : 'hover:bg-gray-100 text-gray-600'
                       }`}
                     >
                       Investigating
                     </button>
                     <button
                       onClick={() => setFilter('real')}
-                      className={`px-3 py-1 rounded-full text-sm ${
+                      className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                         filter === 'real'
                           ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          : 'hover:bg-gray-100 text-gray-600'
                       }`}
                     >
                       Verified
                     </button>
                     <button
                       onClick={() => setFilter('fake')}
-                      className={`px-3 py-1 rounded-full text-sm ${
+                      className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                         filter === 'fake'
                           ? 'bg-red-100 text-red-800'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          : 'hover:bg-gray-100 text-gray-600'
                       }`}
                     >
                       Fake
                     </button>
                     <button
                       onClick={() => setFilter('debunked')}
-                      className={`px-3 py-1 rounded-full text-sm ${
+                      className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                         filter === 'debunked'
                           ? 'bg-purple-100 text-purple-800'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          : 'hover:bg-gray-100 text-gray-600'
                       }`}
                     >
                       Debunked
                     </button>
                   </div>
                 </div>
+              </div>
+            </div>
 
-                <div className="space-y-6">
-                  {filteredStories.map(story => (
-                    <div
-                      key={story.id}
-                      className={`border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer ${
-                        selectedStory?.id === story.id ? 'ring-2 ring-blue-500' : ''
-                      }`}
-                      onClick={() => handleStoryClick(story)}
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="text-lg font-medium">{story.title}</h3>
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          story.verificationStatus === 'investigating'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : story.verificationStatus === 'real'
-                            ? 'bg-green-100 text-green-800'
-                            : story.verificationStatus === 'fake'
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-purple-100 text-purple-800'
-                        }`}>
-                          {story.verificationStatus.charAt(0).toUpperCase() + story.verificationStatus.slice(1)}
-                        </span>
+            {/* Main Content - Stories */}
+            <div className="lg:col-span-3">
+              <div className="space-y-6">
+                {filteredStories.map(story => (
+                  <div
+                    key={story.id}
+                    className={`bg-white rounded-xl shadow-sm transition-all ${
+                      selectedStory?.id === story.id ? 'ring-2 ring-blue-500' : 'hover:shadow-md'
+                    }`}
+                  >
+                    <div className="p-6" onClick={() => handleStoryClick(story)}>
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center space-x-2">
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                              story.verificationStatus === 'investigating'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : story.verificationStatus === 'real'
+                                ? 'bg-green-100 text-green-800'
+                                : story.verificationStatus === 'fake'
+                                ? 'bg-red-100 text-red-800'
+                                : 'bg-purple-100 text-purple-800'
+                            }`}>
+                              {story.verificationStatus.charAt(0).toUpperCase() + story.verificationStatus.slice(1)}
+                            </span>
+                            <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
+                              {story.category}
+                            </span>
+                          </div>
+                          <h3 className="text-lg font-semibold text-gray-900">{story.title}</h3>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="text-right">
+                            <div className="text-sm font-medium text-gray-900">
+                              Confidence: {(story.confidence * 100).toFixed(0)}%
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              Spread: {story.spread}%
+                            </div>
+                          </div>
+                        </div>
                       </div>
+
                       <p className="text-gray-600 mb-4">{story.description}</p>
-                      
+
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center space-x-4">
-                          <span className="text-sm text-gray-500">
-                            Source: {story.sources.join(', ')}
-                          </span>
-                          <span className="text-sm text-gray-500">
-                            Date Detected: {story.dateDetected}
-                          </span>
+                          <div className="flex items-center space-x-1">
+                            <span className="text-sm text-gray-500">Sources:</span>
+                            {story.sources.map((source, index) => (
+                              <span
+                                key={index}
+                                className="px-2 py-1 bg-gray-100 text-xs text-gray-600 rounded-full"
+                              >
+                                {source}
+                              </span>
+                            ))}
+                          </div>
                         </div>
-                        <div className="flex items-center">
-                          <span className="text-sm text-gray-500 mr-2">
-                            Spread: {story.spread.toFixed(2)}
-                          </span>
-                          <span className="text-sm text-gray-500">
-                            Confidence: {story.confidence.toFixed(2)}
-                          </span>
-                        </div>
+                        <span className="text-sm text-gray-500">
+                          Detected: {new Date(story.dateDetected).toLocaleDateString()}
+                        </span>
                       </div>
 
                       {selectedStory?.id === story.id && analysis && (
-                        <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                          <h4 className="font-semibold mb-2">Analysis & Explanation</h4>
-                          <div className="space-y-4">
-                            <div>
-                              <h5 className="text-sm font-medium text-gray-700 mb-2">Credibility Factors</h5>
-                              <div className="space-y-2">
-                                {analysis.explanation.factors.map((factor, index) => (
-                                  <div key={index} className="flex items-center justify-between">
-                                    <div>
-                                      <span className="text-sm font-medium">{factor.name}</span>
-                                      <p className="text-xs text-gray-600">{factor.description}</p>
+                        <div className="mt-6 space-y-6 border-t pt-6">
+                          <div>
+                            <h4 className="text-lg font-semibold mb-4">Analysis & Explanation</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              <div className="space-y-4">
+                                <h5 className="font-medium text-gray-900">Credibility Factors</h5>
+                                <div className="space-y-3">
+                                  {analysis.explanation.factors.map((factor, index) => (
+                                    <div key={index}>
+                                      <div className="flex justify-between items-center mb-1">
+                                        <span className="text-sm font-medium text-gray-700">
+                                          {factor.name}
+                                        </span>
+                                        <span className="text-sm text-gray-500">
+                                          {(factor.score * 100).toFixed(0)}%
+                                        </span>
+                                      </div>
+                                      <div className="w-full bg-gray-200 rounded-full h-2">
+                                        <div
+                                          className={`h-2 rounded-full ${
+                                            factor.score > 0.7
+                                              ? 'bg-green-500'
+                                              : factor.score > 0.4
+                                              ? 'bg-yellow-500'
+                                              : 'bg-red-500'
+                                          }`}
+                                          style={{ width: `${factor.score * 100}%` }}
+                                        ></div>
+                                      </div>
+                                      <p className="text-xs text-gray-500 mt-1">
+                                        {factor.description}
+                                      </p>
                                     </div>
-                                    <div className="w-24 bg-gray-200 rounded-full h-2">
-                                      <div
-                                        className="bg-blue-600 h-2 rounded-full"
-                                        style={{ width: `${factor.score * 100}%` }}
-                                      ></div>
-                                    </div>
-                                  </div>
-                                ))}
+                                  ))}
+                                </div>
+                              </div>
+
+                              <div className="space-y-4">
+                                <div>
+                                  <h5 className="font-medium text-gray-900 mb-2">Evidence</h5>
+                                  <ul className="space-y-2">
+                                    {analysis.explanation.evidence.map((item, index) => (
+                                      <li key={index} className="flex items-start">
+                                        <span className="mr-2">•</span>
+                                        <span className="text-sm text-gray-600">{item}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+
+                                <div>
+                                  <h5 className="font-medium text-gray-900 mb-2">Conclusion</h5>
+                                  <p className="text-sm text-gray-600">
+                                    {analysis.explanation.conclusion}
+                                  </p>
+                                </div>
                               </div>
                             </div>
-                            <div>
-                              <h5 className="text-sm font-medium text-gray-700 mb-2">Evidence</h5>
-                              <ul className="list-disc list-inside text-sm text-gray-600">
-                                {analysis.explanation.evidence.map((item, index) => (
-                                  <li key={index}>{item}</li>
-                                ))}
-                              </ul>
-                            </div>
-                            <div>
-                              <h5 className="text-sm font-medium text-gray-700 mb-2">Conclusion</h5>
-                              <p className="text-sm text-gray-600">{analysis.explanation.conclusion}</p>
+                          </div>
+
+                          <div className="border-t pt-6">
+                            <h5 className="font-medium text-gray-900 mb-4">Community Verification</h5>
+                            <div className="grid grid-cols-3 gap-4">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleVote(story.id, 'credible');
+                                }}
+                                disabled={!!userVotes[story.id]}
+                                className={`flex flex-col items-center p-4 rounded-lg transition-colors ${
+                                  userVotes[story.id] === 'credible'
+                                    ? 'bg-green-100 text-green-800'
+                                    : 'bg-gray-50 hover:bg-gray-100'
+                                }`}
+                              >
+                                <span className="text-2xl mb-2">👍</span>
+                                <span className="font-medium">Credible</span>
+                                <span className="text-sm">
+                                  {getVotePercentage(story.votes).credible}%
+                                </span>
+                                <span className="text-xs text-gray-500">
+                                  {story.votes.credible} votes
+                                </span>
+                              </button>
+
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleVote(story.id, 'suspicious');
+                                }}
+                                disabled={!!userVotes[story.id]}
+                                className={`flex flex-col items-center p-4 rounded-lg transition-colors ${
+                                  userVotes[story.id] === 'suspicious'
+                                    ? 'bg-yellow-100 text-yellow-800'
+                                    : 'bg-gray-50 hover:bg-gray-100'
+                                }`}
+                              >
+                                <span className="text-2xl mb-2">🤔</span>
+                                <span className="font-medium">Suspicious</span>
+                                <span className="text-sm">
+                                  {getVotePercentage(story.votes).suspicious}%
+                                </span>
+                                <span className="text-xs text-gray-500">
+                                  {story.votes.suspicious} votes
+                                </span>
+                              </button>
+
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleVote(story.id, 'fake');
+                                }}
+                                disabled={!!userVotes[story.id]}
+                                className={`flex flex-col items-center p-4 rounded-lg transition-colors ${
+                                  userVotes[story.id] === 'fake'
+                                    ? 'bg-red-100 text-red-800'
+                                    : 'bg-gray-50 hover:bg-gray-100'
+                                }`}
+                              >
+                                <span className="text-2xl mb-2">❌</span>
+                                <span className="font-medium">Fake</span>
+                                <span className="text-sm">
+                                  {getVotePercentage(story.votes).fake}%
+                                </span>
+                                <span className="text-xs text-gray-500">
+                                  {story.votes.fake} votes
+                                </span>
+                              </button>
                             </div>
                           </div>
                         </div>
                       )}
-
-                      <div className="space-y-2">
-                        <div className="flex space-x-2">
-                          {story.sources.map((source, index) => (
-                            <span
-                              key={index}
-                              className="px-2 py-1 bg-gray-100 rounded-full text-xs text-gray-600"
-                            >
-                              {source}
-                            </span>
-                          ))}
-                        </div>
-                        
-                        <div className="flex items-center space-x-4">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleVote(story.id, 'credible');
-                            }}
-                            disabled={!!userVotes[story.id]}
-                            className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium ${
-                              userVotes[story.id] === 'credible'
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                            }`}
-                          >
-                            Credible ({getVotePercentage(story.votes).credible}%)
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleVote(story.id, 'suspicious');
-                            }}
-                            disabled={!!userVotes[story.id]}
-                            className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium ${
-                              userVotes[story.id] === 'suspicious'
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                            }`}
-                          >
-                            Suspicious ({getVotePercentage(story.votes).suspicious}%)
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleVote(story.id, 'fake');
-                            }}
-                            disabled={!!userVotes[story.id]}
-                            className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium ${
-                              userVotes[story.id] === 'fake'
-                                ? 'bg-red-100 text-red-800'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                            }`}
-                          >
-                            Fake ({getVotePercentage(story.votes).fake}%)
-                          </button>
-                        </div>
-                      </div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
