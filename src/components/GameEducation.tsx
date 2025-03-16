@@ -222,7 +222,7 @@ export function GameEducation({ onClose }: GameEducationProps) {
       easy: 100,
       medium: 200,
       hard: 300
-    }[difficulty];
+    }[difficulty] || 100;
     
     const streakBonus = Math.floor(currentStreak / 3) * 50;
     return basePoints + streakBonus;

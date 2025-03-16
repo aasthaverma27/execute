@@ -24,10 +24,10 @@ async function preprocessImage(image: HTMLImageElement): Promise<tf.Tensor3D> {
   const tensor = tf.browser.fromPixels(image)
     .resizeNearestNeighbor([224, 224]) // Resize to model input size
     .toFloat()
-    .expandDims(0);
+    .expandDims(0)
+    .div(255.0) as tf.Tensor3D;
   
-  // Normalize the image
-  return tensor.div(255.0);
+  return tensor;
 }
 
 export async function analyzeMedia(file: File): Promise<AnalysisResult> {
@@ -37,7 +37,7 @@ export async function analyzeMedia(file: File): Promise<AnalysisResult> {
     if (file.type.startsWith('image/')) {
       // Load and preprocess the image
       const image = await loadImage(file);
-      const tensor = await preprocessImage(image);
+      await preprocessImage(image);
 
       // For now, we'll use a simple example analysis
       // In a real implementation, you would:
@@ -87,30 +87,27 @@ export async function analyzeMedia(file: File): Promise<AnalysisResult> {
   }
 }
 
-export async function analyzeImage(imageData: ImageData): Promise<{
+export async function analyzeImage(): Promise<{
   isManipulated: boolean;
   confidence: number;
   details: Array<{ label: string; value: number }>;
 }> {
-  // Convert ImageData to tensor
-  const tensor = tf.browser.fromPixels(imageData);
-  const resized = tf.image.resizeBilinear(tensor as tf.Tensor3D, [224, 224]);
-  const normalized = resized.div(255.0);
-  const batched = normalized.expandDims(0);
-
-  // Cleanup tensors
-  tensor.dispose();
-  resized.dispose();
-  normalized.dispose();
-
-  // Return mock analysis for now
-  return {
-    isManipulated: Math.random() > 0.5,
-    confidence: 0.85 + Math.random() * 0.1,
-    details: [
-      { label: 'Manipulation Detection', value: 0.92 },
-      { label: 'GAN Detection', value: 0.88 },
-      { label: 'Metadata Analysis', value: 0.95 },
-    ],
-  };
+  try {
+    // For now, return mock results
+    return {
+      isManipulated: false,
+      confidence: 0.95,
+      details: [
+        { label: 'Image Quality', value: 0.98 },
+        { label: 'Manipulation Score', value: 0.02 }
+      ]
+    };
+  } catch (error) {
+    console.error('Error analyzing image:', error);
+    return {
+      isManipulated: false,
+      confidence: 0,
+      details: []
+    };
+  }
 } 

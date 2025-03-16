@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Avatar } from './ui/Avatar';
 import { Tooltip } from './ui/Tooltip';
 
@@ -23,173 +23,6 @@ interface Story {
   activeCheckers: number;
 }
 
-const sampleStories: Story[] = [
-  {
-    id: '1',
-    title: "AI-Generated Images in Recent Political Campaign",
-    content: "Claims of AI-generated images being used in political advertisements without disclosure.",
-    source: "Social Media",
-    datePosted: "2024-03-16",
-    votes: {
-      credible: 45,
-      suspicious: 120,
-      fake: 85
-    },
-    status: 'pending',
-    sources: [
-      "Campaign Website",
-      "Twitter Threads",
-      "News Articles"
-    ],
-    category: "Politics",
-    activeCheckers: 34
-  },
-  {
-    id: '2',
-    title: "New Health Study Claims Breakthrough",
-    content: "Viral post claims revolutionary health discovery, but lacks peer review.",
-    source: "Health Blog",
-    datePosted: "2024-03-15",
-    votes: {
-      credible: 25,
-      suspicious: 150,
-      fake: 200
-    },
-    status: 'debunked',
-    sources: [
-      "Medical Journals",
-      "Expert Opinions",
-      "Fact-Check Reports"
-    ],
-    category: "Health",
-    activeCheckers: 28
-  },
-  {
-    id: '3',
-    title: "Environmental Data Visualization Controversy",
-    content: "Debate over the presentation of climate data in recent report.",
-    source: "Research Institute",
-    datePosted: "2024-03-14",
-    votes: {
-      credible: 180,
-      suspicious: 45,
-      fake: 30
-    },
-    status: 'verified',
-    sources: [
-      "Scientific Papers",
-      "Raw Data Sets",
-      "Expert Analysis"
-    ],
-    category: "Environment",
-    activeCheckers: 42
-  },
-  {
-    id: '4',
-    title: "Viral Video Claims to Show Quantum Computing Breakthrough",
-    content: "A video circulating on social media claims to demonstrate a revolutionary quantum computing achievement, but experts raise concerns about the authenticity of the demonstration.",
-    source: "Tech News Network",
-    datePosted: "2024-03-17",
-    votes: {
-      credible: 75,
-      suspicious: 280,
-      fake: 145
-    },
-    status: 'pending',
-    sources: [
-      "Research Papers",
-      "Tech Industry Reports",
-      "Expert Interviews",
-      "Laboratory Documentation"
-    ],
-    category: "Technology",
-    activeCheckers: 56
-  },
-  {
-    id: '5',
-    title: "Ancient Archaeological Discovery Questions Historical Timeline",
-    content: "Recent social media posts claim a groundbreaking archaeological find that could rewrite human history. Archaeologists call for careful verification.",
-    source: "History Channel Blog",
-    datePosted: "2024-03-16",
-    votes: {
-      credible: 220,
-      suspicious: 180,
-      fake: 40
-    },
-    status: 'pending',
-    sources: [
-      "Archaeological Reports",
-      "University Studies",
-      "Field Research Data"
-    ],
-    category: "History",
-    activeCheckers: 47
-  },
-  {
-    id: '6',
-    title: "Financial Market Manipulation Through Social Media",
-    content: "Investigation into coordinated efforts to spread false financial information across social media platforms to influence market behavior.",
-    source: "Financial Times",
-    datePosted: "2024-03-15",
-    votes: {
-      credible: 340,
-      suspicious: 95,
-      fake: 25
-    },
-    status: 'verified',
-    sources: [
-      "Market Analysis",
-      "Trading Data",
-      "Regulatory Reports",
-      "Social Media Trends"
-    ],
-    category: "Finance",
-    activeCheckers: 89
-  },
-  {
-    id: '7',
-    title: "Sports Injury Cover-Up Allegations",
-    content: "Widespread claims suggest major sports team concealed severity of star player's injury during championship season.",
-    source: "Sports Insider",
-    datePosted: "2024-03-14",
-    votes: {
-      credible: 156,
-      suspicious: 234,
-      fake: 89
-    },
-    status: 'pending',
-    sources: [
-      "Team Statements",
-      "Medical Records",
-      "Player Interviews",
-      "League Reports"
-    ],
-    category: "Sports",
-    activeCheckers: 63
-  },
-  {
-    id: '8',
-    title: "AI-Generated Celebrity Endorsements",
-    content: "Investigation reveals potential use of AI to create fake celebrity endorsements for cryptocurrency investments.",
-    source: "Digital Media Watch",
-    datePosted: "2024-03-13",
-    votes: {
-      credible: 89,
-      suspicious: 445,
-      fake: 267
-    },
-    status: 'debunked',
-    sources: [
-      "Celebrity Statements",
-      "Digital Forensics",
-      "Social Media Analysis",
-      "Legal Documents"
-    ],
-    category: "Entertainment",
-    activeCheckers: 71
-  }
-];
-
 const activeUsers = [
   { id: 1, name: "Fact Checker 1", avatar: "https://i.pravatar.cc/150?img=1", status: "online" },
   { id: 2, name: "Fact Checker 2", avatar: "https://i.pravatar.cc/150?img=2", status: "online" },
@@ -199,11 +32,10 @@ const activeUsers = [
 ];
 
 export function CollaborativeFactChecking({ onClose }: FactCheckingProps) {
-  const [stories, setStories] = useState<Story[]>(sampleStories);
+  const [stories, setStories] = useState<Story[]>([]);
   const [userVotes, setUserVotes] = useState<Record<string, keyof Story['votes']>>({});
   const [totalActiveUsers] = useState(234); // Simulated total active users
   const [filter, setFilter] = useState<'all' | 'pending' | 'verified' | 'debunked'>('all');
-  const [activeTab, setActiveTab] = useState('trending');
 
   const handleVote = (storyId: string, voteType: keyof Story['votes']) => {
     if (userVotes[storyId]) return; // User has already voted

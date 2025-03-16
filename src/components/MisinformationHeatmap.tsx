@@ -1,11 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { MapContainer, TileLayer, Circle, Popup, ZoomControl, useMap, GeoJSON } from 'react-leaflet';
 import { Map as LeafletMap, geoJSON } from 'leaflet';
 import * as d3 from 'd3';
 import 'leaflet/dist/leaflet.css';
-import { select } from 'd3-selection';
-import { geoPath, geoMercator } from 'd3-geo';
-import { feature } from 'topojson-client';
 
 interface MisinformationHeatmapProps {
   onClose: () => void;
@@ -277,7 +274,6 @@ export function MisinformationHeatmap({ onClose }: MisinformationHeatmapProps) {
   const [geoJsonData, setGeoJsonData] = useState<CountryGeoJSON | null>(null);
   const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
   const mapRef = useRef<LeafletMap>(null);
-  const svgRef = useRef<SVGSVGElement>(null);
 
   // Fetch GeoJSON data
   useEffect(() => {
@@ -287,31 +283,11 @@ export function MisinformationHeatmap({ onClose }: MisinformationHeatmapProps) {
       .catch(error => console.error('Error loading GeoJSON:', error));
   }, []);
 
-  useEffect(() => {
-    if (!svgRef.current) return;
-
-    const svg = select(svgRef.current);
-    const projection = geoMercator();
-    const pathGenerator = geoPath().projection(projection);
-
-    // Use these in your map rendering logic
-    // ... rest of the component implementation ...
-  }, []);
-
   const handleStoryClick = (story: typeof sampleStories[0]) => {
     setSelectedStory(story);
     setMapCenter(story.coordinates);
     if (activeTab !== 'global') {
       setActiveTab('global');
-    }
-  };
-
-  const handleMapClick = (e: any) => {
-    if (e.latlng) {
-      const newStory = generateRandomStory("Unknown Region", [e.latlng.lat, e.latlng.lng]);
-      setStories(prev => [...prev, newStory]);
-      setSelectedStory(newStory);
-      setMapCenter([e.latlng.lat, e.latlng.lng]);
     }
   };
 
